@@ -1,0 +1,4 @@
+# Keep LF endings so the scripts run under Git Bash on Windows runners.
+*.sh text eol=lf
+*.yml text eol=lf
+*.md text eol=lf

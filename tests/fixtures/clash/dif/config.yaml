@@ -1,0 +1,31 @@
+# dif.sh project config. Checked in. Edit by hand or re-run `dif init`.
+
+project: dif-action-clash
+default_surface: home
+
+# Audience attribute schema. The audience predicate language is closed over
+# this set — anything not declared here is a validation error. Each entry
+# must have a matching resolver at `dif/audiences/<name>.ts`. Run
+# `dif scaffold-audiences` to pull in starters.
+audience_attributes:
+  - name: locale
+    type: string
+  - name: device_type
+    type: enum
+    values: [mobile, tablet, desktop]
+
+# How users are bucketed.
+bucketing:
+  id: user_id
+  fallback: anon_cookie
+
+# How events are delivered. `cloud` posts exposures and dif.track()
+# metrics to dif.sh Cloud. The url is recorded here so the SDK and the cloud
+# agree on where to send them.
+events:
+  mode: cloud
+  url: https://cloud.dif.sh
+
+build:
+  out: dif/generated
+  fail_on: [conflict, orphan_ref, missing_owner]

@@ -1,0 +1,4 @@
+# dif build output written by local test runs against the fixtures
+tests/fixtures/*/dif/generated/
+tests/fixtures/*/dif/context.json
+.DS_Store

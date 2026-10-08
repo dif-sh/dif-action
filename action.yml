@@ -1,0 +1,62 @@
+name: "dif build and validate"
+description: "Install the dif CLI and run dif build. Fails the job when two feature flags or A/B tests clash on one surface."
+author: "dif.sh"
+
+branding:
+  icon: "flag"
+  color: "green"
+
+inputs:
+  version:
+    description: "dif release to install: `latest`, or a version such as `0.6.3` or `v0.6.3`."
+    required: false
+    default: "latest"
+  command:
+    description: "dif verb to run. `build` validates and then writes dif/generated/. `validate` checks only and writes nothing."
+    required: false
+    default: "build"
+  args:
+    description: "Extra arguments for the verb, split on whitespace. Example: `--out src/generated`."
+    required: false
+    default: ""
+  working-directory:
+    description: "Directory that contains the dif/ folder, relative to the repository root."
+    required: false
+    default: "."
+  annotations:
+    description: "Set to `false` to stop turning dif errors and warnings into GitHub annotations on the experiment files."
+    required: false
+    default: "true"
+  install-only:
+    description: "Set to `true` to install dif and add it to PATH without running a verb."
+    required: false
+    default: "false"
+
+outputs:
+  version:
+    description: "The dif version that was installed, for example `0.6.3`."
+    value: ${{ steps.install.outputs.version }}
+  exit-code:
+    description: "Exit code of the dif verb. `0` when every check passed, `1` on any validation error. Empty when install-only is true."
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install dif
+      id: install
+      shell: bash
+      env:
+        DIF_VERSION: ${{ inputs.version }}
+      run: bash "${GITHUB_ACTION_PATH}/scripts/install.sh"
+
+    - name: Run dif
+      id: run
+      if: ${{ inputs.install-only != 'true' }}
+      shell: bash
+      env:
+        DIF_COMMAND: ${{ inputs.command }}
+        DIF_ARGS: ${{ inputs.args }}
+        DIF_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        DIF_ANNOTATIONS: ${{ inputs.annotations }}
+      run: bash "${GITHUB_ACTION_PATH}/scripts/run.sh"

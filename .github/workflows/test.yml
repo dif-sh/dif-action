@@ -1,0 +1,85 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: fixtures (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+
+      # Passing fixture: two active experiments on surface `home` that share
+      # `exclusion_group: home`.
+      - name: dif build, passing fixture
+        id: pass
+        uses: ./
+        with:
+          working-directory: tests/fixtures/pass
+
+      - name: passing fixture wrote the typed client
+        shell: bash
+        run: |
+          test "${{ steps.pass.outputs.exit-code }}" = "0"
+          test -n "${{ steps.pass.outputs.version }}"
+          test -f tests/fixtures/pass/dif/generated/client.ts
+          grep -q 'exclusionGroup: "home"' tests/fixtures/pass/dif/generated/client.ts
+
+      # Clash fixture: the same two experiments with no exclusion_group.
+      # dif build must exit 1 with E007 and write nothing.
+      - name: dif build, clash fixture (expected to fail)
+        id: clash
+        continue-on-error: true
+        uses: ./
+        with:
+          working-directory: tests/fixtures/clash
+
+      - name: clash fixture failed the step and wrote nothing
+        shell: bash
+        run: |
+          test "${{ steps.clash.outcome }}" = "failure"
+          test ! -e tests/fixtures/clash/dif/generated/client.ts
+
+      - name: dif validate, clash fixture (expected to fail)
+        id: clash-validate
+        continue-on-error: true
+        uses: ./
+        with:
+          command: validate
+          working-directory: tests/fixtures/clash
+
+      - name: validate also exits 1 on the clash
+        shell: bash
+        run: |
+          test "${{ steps.clash-validate.outcome }}" = "failure"
+
+  pinned-version:
+    name: pinned version, install only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: dif
+        uses: ./
+        with:
+          version: "0.6.3"
+          install-only: "true"
+
+      - name: dif is on PATH at the pinned version
+        shell: bash
+        run: |
+          test "${{ steps.dif.outputs.version }}" = "0.6.3"
+          test "$(dif --version)" = "dif 0.6.3"
+          cd tests/fixtures/pass
+          dif validate
